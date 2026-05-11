@@ -5,13 +5,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Landmark } from "lucide-react";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
+import { useThemeStore } from "@/store/theme";
 import { useToast } from "@/lib/hooks/useToast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import type { Token, UserOut } from "@/types/api";
 
 const schema = z.object({
@@ -24,6 +27,8 @@ type FormValues = z.infer<typeof schema>;
 export default function LoginPage() {
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
+  const syncFromUser = useThemeStore((s) => s.syncFromUser);
+  const accentColor = useThemeStore((s) => s.accentColor);
   const { toast } = useToast();
 
   const {
@@ -39,6 +44,7 @@ export default function LoginPage() {
         headers: { Authorization: `Bearer ${tokenData.access_token}` },
       });
       login(user, tokenData.access_token);
+      syncFromUser(user.theme as "light" | "dark", user.accent_color);
       router.push("/");
     } catch {
       toast({ variant: "destructive", title: "Error al iniciar sesión", description: "Email o contraseña incorrectos." });
@@ -47,8 +53,15 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle persistToBackend={false} />
+      </div>
+
       <Card className="w-full max-w-sm">
-        <CardHeader className="space-y-1">
+        <CardHeader className="space-y-2 items-center text-center">
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-1">
+            <Landmark className="h-6 w-6" style={{ color: accentColor }} />
+          </div>
           <CardTitle className="text-2xl font-bold">Numsa</CardTitle>
           <CardDescription>Inicia sesión en tu cuenta</CardDescription>
         </CardHeader>

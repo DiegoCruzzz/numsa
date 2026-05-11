@@ -11,7 +11,7 @@ DEFAULT_EXPENSE_CATEGORIES = [
     {"name": "Alimentación", "icon": "🍔", "color": "#FF6B6B"},
     {"name": "Transporte", "icon": "🚗", "color": "#4ECDC4"},
     {"name": "Vivienda", "icon": "🏠", "color": "#45B7D1"},
-    {"name": "Salud", "icon": "💊", "color": "#96CEB4"},
+    {"name": "Salud", "icon": "🏥", "color": "#96CEB4"},
     {"name": "Entretenimiento", "icon": "🎬", "color": "#FFEAA7"},
     {"name": "Ropa", "icon": "👕", "color": "#DDA0DD"},
     {"name": "Educación", "icon": "📚", "color": "#98D8C8"},

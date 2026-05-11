@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/auth";
+import { ThemeToggle } from "./ThemeToggle";
+import { AccentPicker } from "./AccentPicker";
 
 export function Header() {
   const router = useRouter();
@@ -23,10 +25,14 @@ export function Header() {
         {greeting},{" "}
         <span className="font-semibold text-foreground">{user?.name ?? "usuario"}</span>
       </p>
-      <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2">
-        <LogOut className="h-4 w-4" />
-        Salir
-      </Button>
+      <div className="flex items-center gap-1">
+        <ThemeToggle />
+        <AccentPicker />
+        <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2 ml-1">
+          <LogOut className="h-4 w-4" />
+          Salir
+        </Button>
+      </div>
     </header>
   );
 }

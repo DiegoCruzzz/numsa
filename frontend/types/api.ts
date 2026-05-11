@@ -3,8 +3,15 @@ export interface UserOut {
   email: string;
   name: string;
   currency: string;
+  theme: string;
+  accent_color: string;
   is_active: boolean;
   created_at: string;
+}
+
+export interface UserPreferencesUpdate {
+  theme?: "light" | "dark";
+  accent_color?: string;
 }
 
 export interface Token {

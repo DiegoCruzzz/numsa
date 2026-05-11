@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.user import User
-from app.schemas.user import LoginRequest, Token, UserCreate, UserOut
+from app.schemas.user import LoginRequest, Token, UserCreate, UserOut, UserPreferencesUpdate
 from app.services.category import seed_default_categories
 
 
@@ -38,3 +38,13 @@ async def login(data: LoginRequest, db: AsyncSession) -> Token:
 
     token = create_access_token(str(user.id))
     return Token(access_token=token)
+
+
+async def update_preferences(data: UserPreferencesUpdate, user: User, db: AsyncSession) -> UserOut:
+    if data.theme is not None:
+        user.theme = data.theme
+    if data.accent_color is not None:
+        user.accent_color = data.accent_color
+    await db.commit()
+    await db.refresh(user)
+    return UserOut.model_validate(user)

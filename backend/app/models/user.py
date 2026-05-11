@@ -15,6 +15,8 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     currency: Mapped[str] = mapped_column(String(10), default="MXN")
+    theme: Mapped[str] = mapped_column(String(10), default="light")
+    accent_color: Mapped[str] = mapped_column(String(20), default="#16a34a")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
