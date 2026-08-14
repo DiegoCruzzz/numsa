@@ -98,6 +98,32 @@ Monorepo: /backend (FastAPI) + /frontend (Next.js)
 - Al completar cada fase: actualizar PROJECT.md y CONTEXT.md
 - Hacer commit con mensaje descriptivo antes de arrancar fase nueva
 
+## Despliegue a producción
+
+### Preparación (hecha en esta revisión)
+- CORS del backend ahora lee `CORS_ORIGINS` desde `.env` (antes hardcodeado a localhost)
+- `NEXT_PUBLIC_API_URL` ahora sí se usa en `lib/api.ts` (antes hardcodeado a localhost, el frontend nunca iba a poder hablar con un backend remoto)
+- `backend/Dockerfile`: corre `alembic upgrade head` automáticamente al arrancar (`entrypoint.sh`) y ya no depende de `--reload`
+- `frontend/Dockerfile`: ahora sí compila con `npm run build` (antes solo hacía `npm install`) y arranca con `npm start`
+- `.dockerignore` en frontend y backend para no filtrar `node_modules`/`.next` locales (macOS) a la imagen de Linux
+- `docker-compose.prod.yml` nuevo — standalone, sin bind-mounts de desarrollo, con `restart: unless-stopped` y variables obligatorias (falla explícito si falta `SECRET_KEY`, `CORS_ORIGINS` o `NEXT_PUBLIC_API_URL`)
+
+### Cómo desplegar en el server (mini PC)
+1. `git clone`/`git pull` del repo
+2. Copiar `.env.example` a `.env` y llenar con los valores reales del server:
+   - `SECRET_KEY`: generar uno nuevo con `openssl rand -hex 32` — nunca usar el default
+   - `POSTGRES_PASSWORD`: una contraseña real, no la default
+   - `CORS_ORIGINS`: `http://IP-DEL-SERVER:3000` (o el dominio, cuando exista)
+   - `NEXT_PUBLIC_API_URL`: `http://IP-DEL-SERVER:8000`
+3. `docker compose -f docker-compose.prod.yml up -d --build`
+4. Verificar `http://IP-DEL-SERVER:8000/health` y `http://IP-DEL-SERVER:3000`
+
+### Pendiente antes de compartir con el círculo cercano
+- Sin HTTPS todavía (decisión consciente: sin dominio/proxy por ahora) — el login viaja en claro si no se agrega TLS. Evaluar Caddy o Cloudflare Tunnel cuando haya dominio.
+- Cookie de auth no es `httpOnly` ni `Secure` (se lee desde `document.cookie` en el cliente) — aceptable para círculo cercano sin HTTPS, pero revisar si se expone más ampliamente
+- Sin backups automáticos del volumen `postgres_data`
+- Sin rate limiting en endpoints de auth
+
 ## Historial de decisiones importantes
 | Fecha | Decisión | Por qué |
 |-------|----------|---------|
