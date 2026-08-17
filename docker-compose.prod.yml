@@ -31,7 +31,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://numsa:numsa_pass@postgres:5432/numsa_db}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-numsa}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-numsa_db}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       SECRET_KEY: ${SECRET_KEY:?falta SECRET_KEY, generar con openssl rand -hex 32}
       ALGORITHM: ${ALGORITHM:-HS256}
