@@ -12,15 +12,23 @@ export function useChatHistory() {
   });
 }
 
+interface SendChatMessageInput {
+  message: string;
+  image?: string;
+}
+
 export function useSendChatMessage() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (message: string) => api.post<ChatResponse>("/chat", { message }).then((r) => r.data),
+    mutationFn: ({ message, image }: SendChatMessageInput) =>
+      api.post<ChatResponse>("/chat", { message, image }).then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["chat-history"] });
       qc.invalidateQueries({ queryKey: ["transactions"] });
       qc.invalidateQueries({ queryKey: ["accounts"] });
       qc.invalidateQueries({ queryKey: ["budgets"] });
+      qc.invalidateQueries({ queryKey: ["debts"] });
+      qc.invalidateQueries({ queryKey: ["categories"] });
     },
   });
 }

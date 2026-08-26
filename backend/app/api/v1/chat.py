@@ -29,5 +29,5 @@ async def send_message(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    reply = await run_agent(current_user, data.message, db)
+    reply = await run_agent(current_user, data.message, db, image=data.image)
     return ChatResponse(reply=reply)
