@@ -1,8 +1,11 @@
+import re
 import uuid
 from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, EmailStr, field_validator
+
+HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
 class UserCreate(BaseModel):
@@ -39,12 +42,8 @@ class UserPreferencesUpdate(BaseModel):
     def validate_accent(cls, v: str | None) -> str | None:
         if v is None:
             return v
-        allowed = {
-            "#16a34a", "#2563eb", "#dc2626", "#9333ea",
-            "#ea580c", "#0891b2", "#ca8a04", "#db2777",
-        }
-        if v not in allowed:
-            raise ValueError("accent_color must be one of the allowed values")
+        if not HEX_COLOR_RE.match(v):
+            raise ValueError("accent_color debe ser un color hex válido, ej. #16a34a")
         return v
 
 

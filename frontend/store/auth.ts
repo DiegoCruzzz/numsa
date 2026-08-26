@@ -7,6 +7,7 @@ interface AuthState {
   token: string | null;
   login: (user: UserOut, token: string) => void;
   logout: () => void;
+  updateUser: (patch: Partial<UserOut>) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -24,6 +25,7 @@ export const useAuthStore = create<AuthState>()(
         document.cookie = "token=; path=/; max-age=0";
         set({ user: null, token: null });
       },
+      updateUser: (patch) => set((state) => (state.user ? { user: { ...state.user, ...patch } } : state)),
     }),
     {
       name: "numsa-auth",

@@ -1,17 +1,26 @@
 import uuid
+from datetime import date, timedelta
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.account import Account
 from app.models.budget import Budget
+from app.models.transaction import Transaction
 from app.schemas.budget import BudgetCreate, BudgetOut, BudgetStatus, BudgetUpdate
 
 
 async def get_all(user_id: uuid.UUID, db: AsyncSession) -> list[BudgetOut]:
     result = await db.execute(select(Budget).where(Budget.user_id == user_id))
     return [BudgetOut.model_validate(b) for b in result.scalars().all()]
+
+
+def _current_period_start(period: str, start_date: date) -> date:
+    today = date.today()
+    period_start = today - timedelta(days=today.weekday()) if period == "weekly" else today.replace(day=1)
+    return max(period_start, start_date)
 
 
 async def get_status(user_id: uuid.UUID, db: AsyncSession) -> list[BudgetStatus]:
@@ -21,8 +30,19 @@ async def get_status(user_id: uuid.UUID, db: AsyncSession) -> list[BudgetStatus]
     budgets = result.scalars().all()
     statuses = []
     for b in budgets:
+        period_start = _current_period_start(b.period, b.start_date)
+        spent_result = await db.execute(
+            select(func.coalesce(func.sum(Transaction.amount), 0))
+            .join(Account, Transaction.account_id == Account.id)
+            .where(
+                Account.user_id == user_id,
+                Transaction.category_id == b.category_id,
+                Transaction.type == "expense",
+                Transaction.date >= period_start,
+            )
+        )
+        spent = float(spent_result.scalar_one())
         limit = float(b.limit_amount)
-        spent = float(b.spent_amount)
         statuses.append(
             BudgetStatus(
                 id=b.id,
