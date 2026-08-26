@@ -10,6 +10,7 @@ import { TransactionForm } from "@/components/transactions/TransactionForm";
 import { useTransactions, useDeleteTransaction } from "@/lib/hooks/useTransactions";
 import { useCategories } from "@/lib/hooks/useCategories";
 import { useToast } from "@/lib/hooks/useToast";
+import { getErrorMessage } from "@/lib/errors";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
@@ -31,8 +32,8 @@ export default function TransactionsPage() {
     try {
       await deleteMutation.mutateAsync(id);
       toast({ title: "Transacción eliminada" });
-    } catch {
-      toast({ variant: "destructive", title: "Error al eliminar" });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error al eliminar", description: getErrorMessage(err, "Intenta de nuevo.") });
     }
   }
 

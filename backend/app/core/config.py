@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_DAYS: int = 7
     CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
     GEMINI_API_KEY: str = ""
-    CHAT_MODEL: str = "gemini/gemini-3-flash"
+    CHAT_MODEL: str = "gemini/gemini-2.5-flash"
 
     model_config = {"env_file": ".env"}
 

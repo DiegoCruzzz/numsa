@@ -18,6 +18,7 @@ import { useCreateTransaction, useUpdateTransaction } from "@/lib/hooks/useTrans
 import { useAccounts } from "@/lib/hooks/useAccounts";
 import { useCategories } from "@/lib/hooks/useCategories";
 import { useToast } from "@/lib/hooks/useToast";
+import { getErrorMessage } from "@/lib/errors";
 import type { TransactionOut } from "@/types/api";
 import { format } from "date-fns";
 
@@ -81,8 +82,8 @@ export function TransactionForm({ open, onClose, editing }: Props) {
       }
       reset();
       onClose();
-    } catch {
-      toast({ variant: "destructive", title: "Error", description: "No se pudo guardar la transacción." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: getErrorMessage(err, "No se pudo guardar la transacción.") });
     }
   }
 

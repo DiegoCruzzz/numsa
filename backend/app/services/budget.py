@@ -41,7 +41,7 @@ async def get_one(budget_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) ->
     result = await db.execute(select(Budget).where(Budget.id == budget_id, Budget.user_id == user_id))
     budget = result.scalar_one_or_none()
     if not budget:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Budget not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Presupuesto no encontrado")
     return BudgetOut.model_validate(budget)
 
 
@@ -57,7 +57,7 @@ async def update(budget_id: uuid.UUID, data: BudgetUpdate, user_id: uuid.UUID, d
     result = await db.execute(select(Budget).where(Budget.id == budget_id, Budget.user_id == user_id))
     budget = result.scalar_one_or_none()
     if not budget:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Budget not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Presupuesto no encontrado")
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(budget, field, value)
     await db.commit()
@@ -69,6 +69,6 @@ async def delete(budget_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) -> 
     result = await db.execute(select(Budget).where(Budget.id == budget_id, Budget.user_id == user_id))
     budget = result.scalar_one_or_none()
     if not budget:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Budget not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Presupuesto no encontrado")
     await db.delete(budget)
     await db.commit()

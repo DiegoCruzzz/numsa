@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { DebtForm } from "@/components/debts/DebtForm";
 import { useDebts, useDeleteDebt } from "@/lib/hooks/useDebts";
 import { useToast } from "@/lib/hooks/useToast";
+import { getErrorMessage } from "@/lib/errors";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
@@ -37,8 +38,8 @@ export default function DebtsPage() {
     try {
       await deleteMutation.mutateAsync(id);
       toast({ title: "Deuda eliminada" });
-    } catch {
-      toast({ variant: "destructive", title: "Error al eliminar" });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error al eliminar", description: getErrorMessage(err, "Intenta de nuevo.") });
     }
   }
 

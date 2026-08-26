@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountForm } from "@/components/accounts/AccountForm";
 import { useAccounts, useDeleteAccount } from "@/lib/hooks/useAccounts";
 import { useToast } from "@/lib/hooks/useToast";
+import { getErrorMessage } from "@/lib/errors";
 import { formatCurrency } from "@/lib/format";
 import type { AccountOut } from "@/types/api";
 
@@ -30,8 +31,8 @@ export default function AccountsPage() {
     try {
       await deleteMutation.mutateAsync(id);
       toast({ title: "Cuenta eliminada" });
-    } catch {
-      toast({ variant: "destructive", title: "Error al eliminar" });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error al eliminar", description: getErrorMessage(err, "Intenta de nuevo.") });
     }
   }
 

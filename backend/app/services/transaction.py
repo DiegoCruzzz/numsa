@@ -16,7 +16,7 @@ async def _get_account_for_user(account_id: uuid.UUID, user_id: uuid.UUID, db: A
     )
     acc = result.scalar_one_or_none()
     if not acc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cuenta no encontrada")
     return acc
 
 
@@ -57,7 +57,7 @@ async def get_one(tx_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) -> Tra
     result = await db.execute(stmt)
     tx = result.scalar_one_or_none()
     if not tx:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transacción no encontrada")
     return TransactionOut.model_validate(tx)
 
 
@@ -79,7 +79,7 @@ async def update(tx_id: uuid.UUID, data: TransactionUpdate, user_id: uuid.UUID, 
     result = await db.execute(stmt)
     tx = result.scalar_one_or_none()
     if not tx:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transacción no encontrada")
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(tx, field, value)
     await db.commit()
@@ -96,6 +96,6 @@ async def delete(tx_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) -> None
     result = await db.execute(stmt)
     tx = result.scalar_one_or_none()
     if not tx:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transacción no encontrada")
     await db.delete(tx)
     await db.commit()

@@ -11,6 +11,11 @@ class UserCreate(BaseModel):
     password: str
     currency: str = "MXN"
 
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        return v.strip().lower()
+
 
 class UserOut(BaseModel):
     id: uuid.UUID
@@ -51,3 +56,8 @@ class Token(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        return v.strip().lower()

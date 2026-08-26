@@ -19,7 +19,7 @@ async def get_one(account_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) -
     )
     acc = result.scalar_one_or_none()
     if not acc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cuenta no encontrada")
     return AccountOut.model_validate(acc)
 
 
@@ -37,7 +37,7 @@ async def update(account_id: uuid.UUID, data: AccountUpdate, user_id: uuid.UUID,
     )
     acc = result.scalar_one_or_none()
     if not acc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cuenta no encontrada")
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(acc, field, value)
     await db.commit()
@@ -51,6 +51,6 @@ async def delete(account_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) ->
     )
     acc = result.scalar_one_or_none()
     if not acc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cuenta no encontrada")
     await db.delete(acc)
     await db.commit()

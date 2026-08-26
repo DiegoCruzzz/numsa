@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useChatHistory, useSendChatMessage } from "@/lib/hooks/useChat";
 import { useToast } from "@/lib/hooks/useToast";
+import { getErrorMessage } from "@/lib/errors";
 import { cn } from "@/lib/utils";
 
 export default function ChatPage() {
@@ -26,8 +27,12 @@ export default function ChatPage() {
     setInput("");
     try {
       await sendMessage.mutateAsync(message);
-    } catch {
-      toast({ variant: "destructive", title: "Error al enviar el mensaje" });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Error al enviar el mensaje",
+        description: getErrorMessage(err, "Intenta de nuevo en un momento."),
+      });
     }
   }
 

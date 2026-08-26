@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useCreateDebt, useUpdateDebt } from "@/lib/hooks/useDebts";
 import { useToast } from "@/lib/hooks/useToast";
+import { getErrorMessage } from "@/lib/errors";
 import type { DebtOut } from "@/types/api";
 
 const schema = z.object({
@@ -69,8 +70,8 @@ export function DebtForm({ open, onClose, editing }: Props) {
       }
       reset();
       onClose();
-    } catch {
-      toast({ variant: "destructive", title: "Error", description: "No se pudo guardar la deuda." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: getErrorMessage(err, "No se pudo guardar la deuda.") });
     }
   }
 

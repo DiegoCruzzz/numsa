@@ -8,6 +8,7 @@ import Link from "next/link";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { useToast } from "@/lib/hooks/useToast";
+import { getErrorMessage } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,8 +56,12 @@ export default function RegisterPage() {
       });
       login(user, tokenData.access_token);
       router.push("/");
-    } catch {
-      toast({ variant: "destructive", title: "Error al registrarse", description: "Verifica los datos e intenta de nuevo." });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Error al registrarse",
+        description: getErrorMessage(err, "Verifica los datos e intenta de nuevo."),
+      });
     }
   }
 

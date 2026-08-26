@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useCreateAccount, useUpdateAccount } from "@/lib/hooks/useAccounts";
 import { useToast } from "@/lib/hooks/useToast";
+import { getErrorMessage } from "@/lib/errors";
 import type { AccountOut } from "@/types/api";
 
 const schema = z.object({
@@ -57,8 +58,8 @@ export function AccountForm({ open, onClose, editing }: Props) {
       }
       reset();
       onClose();
-    } catch {
-      toast({ variant: "destructive", title: "Error", description: "No se pudo guardar la cuenta." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: getErrorMessage(err, "No se pudo guardar la cuenta.") });
     }
   }
 

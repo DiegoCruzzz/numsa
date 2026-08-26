@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { BudgetForm } from "@/components/budgets/BudgetForm";
 import { useBudgets, useDeleteBudget } from "@/lib/hooks/useBudgets";
 import { useToast } from "@/lib/hooks/useToast";
+import { getErrorMessage } from "@/lib/errors";
 import { formatCurrency } from "@/lib/format";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
@@ -26,8 +27,8 @@ export default function BudgetsPage() {
     try {
       await deleteMutation.mutateAsync(id);
       toast({ title: "Presupuesto eliminado" });
-    } catch {
-      toast({ variant: "destructive", title: "Error al eliminar" });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error al eliminar", description: getErrorMessage(err, "Intenta de nuevo.") });
     }
   }
 

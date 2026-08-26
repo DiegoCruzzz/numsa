@@ -45,7 +45,7 @@ async def get_one(category_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) 
     )
     cat = result.scalar_one_or_none()
     if not cat:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Categoría no encontrada")
     return CategoryOut.model_validate(cat)
 
 
@@ -63,7 +63,7 @@ async def update(category_id: uuid.UUID, data: CategoryUpdate, user_id: uuid.UUI
     )
     cat = result.scalar_one_or_none()
     if not cat:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Categoría no encontrada")
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(cat, field, value)
     await db.commit()
@@ -77,6 +77,6 @@ async def delete(category_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) -
     )
     cat = result.scalar_one_or_none()
     if not cat:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Categoría no encontrada")
     await db.delete(cat)
     await db.commit()

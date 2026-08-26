@@ -35,7 +35,7 @@ async def get_one(debt_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) -> D
     result = await db.execute(select(Debt).where(Debt.id == debt_id, Debt.user_id == user_id))
     debt = result.scalar_one_or_none()
     if not debt:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Debt not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deuda no encontrada")
     return DebtOut.model_validate(debt)
 
 
@@ -51,7 +51,7 @@ async def update(debt_id: uuid.UUID, data: DebtUpdate, user_id: uuid.UUID, db: A
     result = await db.execute(select(Debt).where(Debt.id == debt_id, Debt.user_id == user_id))
     debt = result.scalar_one_or_none()
     if not debt:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Debt not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deuda no encontrada")
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(debt, field, value)
     await db.commit()
@@ -63,6 +63,6 @@ async def delete(debt_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) -> No
     result = await db.execute(select(Debt).where(Debt.id == debt_id, Debt.user_id == user_id))
     debt = result.scalar_one_or_none()
     if not debt:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Debt not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deuda no encontrada")
     await db.delete(debt)
     await db.commit()

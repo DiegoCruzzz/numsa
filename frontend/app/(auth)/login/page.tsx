@@ -10,6 +10,7 @@ import api from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { useThemeStore } from "@/store/theme";
 import { useToast } from "@/lib/hooks/useToast";
+import { getErrorMessage } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,8 +47,12 @@ export default function LoginPage() {
       login(user, tokenData.access_token);
       syncFromUser(user.theme as "light" | "dark", user.accent_color);
       router.push("/");
-    } catch {
-      toast({ variant: "destructive", title: "Error al iniciar sesión", description: "Email o contraseña incorrectos." });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Error al iniciar sesión",
+        description: getErrorMessage(err, "Email o contraseña incorrectos."),
+      });
     }
   }
 

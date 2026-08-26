@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useCreateBudget, useUpdateBudget } from "@/lib/hooks/useBudgets";
 import { useCategories } from "@/lib/hooks/useCategories";
 import { useToast } from "@/lib/hooks/useToast";
+import { getErrorMessage } from "@/lib/errors";
 import type { BudgetOut } from "@/types/api";
 
 const schema = z.object({
@@ -65,8 +66,8 @@ export function BudgetForm({ open, onClose, editing }: Props) {
       }
       reset();
       onClose();
-    } catch {
-      toast({ variant: "destructive", title: "Error", description: "No se pudo guardar el presupuesto." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: getErrorMessage(err, "No se pudo guardar el presupuesto.") });
     }
   }
 
