@@ -27,6 +27,10 @@ async def get_all(
     date_to: date | None = None,
     category_id: uuid.UUID | None = None,
     type: str | None = None,
+    account_id: uuid.UUID | None = None,
+    search: str | None = None,
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[TransactionOut]:
     filters = [Account.user_id == user_id]
     if date_from:
@@ -37,13 +41,20 @@ async def get_all(
         filters.append(Transaction.category_id == category_id)
     if type:
         filters.append(Transaction.type == type)
+    if account_id:
+        filters.append(Transaction.account_id == account_id)
+    if search:
+        filters.append(Transaction.description.ilike(f"%{search}%"))
 
     stmt = (
         select(Transaction)
         .join(Account, Transaction.account_id == Account.id)
         .where(and_(*filters))
-        .order_by(Transaction.date.desc())
+        .order_by(Transaction.date.desc(), Transaction.created_at.desc())
+        .offset(offset)
     )
+    if limit is not None:
+        stmt = stmt.limit(limit)
     result = await db.execute(stmt)
     return [TransactionOut.model_validate(t) for t in result.scalars().all()]
 

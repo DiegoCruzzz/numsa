@@ -66,6 +66,13 @@ async def get_one(budget_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) ->
 
 
 async def create(data: BudgetCreate, user_id: uuid.UUID, db: AsyncSession) -> BudgetOut:
+    existing = await db.execute(
+        select(Budget).where(Budget.user_id == user_id, Budget.category_id == data.category_id)
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Ya existe un presupuesto para esta categoría"
+        )
     budget = Budget(user_id=user_id, **data.model_dump())
     db.add(budget)
     await db.commit()

@@ -19,10 +19,16 @@ async def list_transactions(
     date_to: date | None = Query(None),
     category_id: uuid.UUID | None = Query(None),
     type: str | None = Query(None),
+    account_id: uuid.UUID | None = Query(None),
+    search: str | None = Query(None),
+    limit: int | None = Query(None, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    return await tx_service.get_all(current_user.id, db, date_from, date_to, category_id, type)
+    return await tx_service.get_all(
+        current_user.id, db, date_from, date_to, category_id, type, account_id, search, limit, offset
+    )
 
 
 @router.post("", response_model=TransactionOut, status_code=201)

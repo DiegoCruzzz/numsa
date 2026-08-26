@@ -260,7 +260,10 @@ async def _resolve_category(
     match = next((c for c in candidates if c.name.lower() == category_name.lower()), None)
     if not match:
         names = ", ".join(c.name for c in candidates)
-        return f"No existe la categoría '{category_name}' para este tipo. Categorías disponibles: {names}."
+        return (
+            f"No existe la categoría '{category_name}' para este tipo. Categorías disponibles: {names}. "
+            "Si ninguna encaja bien, usa 'Otro' en vez de forzar una equivocada."
+        )
     return match
 
 
@@ -550,11 +553,16 @@ async def create_budget(
     category = await _resolve_category(user_id, db, category_name, is_income=False)
     if isinstance(category, str):
         return category
-    budget = await budget_service.create(
-        BudgetCreate(category_id=category.id, limit_amount=limit_amount, period=period, start_date=_parse_date(start_date)),
-        user_id,
-        db,
-    )
+    try:
+        budget = await budget_service.create(
+            BudgetCreate(
+                category_id=category.id, limit_amount=limit_amount, period=period, start_date=_parse_date(start_date)
+            ),
+            user_id,
+            db,
+        )
+    except HTTPException as e:
+        return f"{e.detail} Usa update_budget si quieres cambiar el límite."
     return json.dumps({"ok": True, "id": str(budget.id), "category": category.name, "limit_amount": budget.limit_amount})
 
 

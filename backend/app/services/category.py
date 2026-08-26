@@ -16,6 +16,7 @@ DEFAULT_EXPENSE_CATEGORIES = [
     {"name": "Ropa", "icon": "👕", "color": "#DDA0DD"},
     {"name": "Educación", "icon": "📚", "color": "#98D8C8"},
     {"name": "Servicios", "icon": "💡", "color": "#F0E68C"},
+    {"name": "Otro", "icon": "🔖", "color": "#95A5A6"},
 ]
 
 DEFAULT_INCOME_CATEGORIES = [

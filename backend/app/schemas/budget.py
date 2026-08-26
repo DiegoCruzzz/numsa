@@ -2,20 +2,23 @@ import uuid
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 BudgetPeriod = Literal["monthly", "weekly"]
+
+# La columna limit_amount es NUMERIC(15,2): máximo 13 dígitos enteros.
+MAX_MONEY_AMOUNT = 10**13
 
 
 class BudgetCreate(BaseModel):
     category_id: uuid.UUID
-    limit_amount: float
+    limit_amount: float = Field(gt=0, lt=MAX_MONEY_AMOUNT)
     period: BudgetPeriod = "monthly"
     start_date: date
 
 
 class BudgetUpdate(BaseModel):
-    limit_amount: float | None = None
+    limit_amount: float | None = Field(default=None, gt=0, lt=MAX_MONEY_AMOUNT)
     period: BudgetPeriod | None = None
     start_date: date | None = None
 

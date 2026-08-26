@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Banknote, CreditCard, Wallet, PiggyBank } from "lucide-react";
+import Link from "next/link";
+import { Plus, Pencil, Trash2, Banknote, CreditCard, Wallet, PiggyBank, ArrowLeftRight, Archive, ArchiveRestore } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountForm } from "@/components/accounts/AccountForm";
-import { useAccounts, useDeleteAccount } from "@/lib/hooks/useAccounts";
+import { useAccounts, useDeleteAccount, useUpdateAccount } from "@/lib/hooks/useAccounts";
 import { useToast } from "@/lib/hooks/useToast";
 import { getErrorMessage } from "@/lib/errors";
 import { formatCurrency } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { AccountOut } from "@/types/api";
 
 const typeIcon = {
@@ -22,9 +24,14 @@ const typeLabel = { cash: "Efectivo", debit: "Débito", credit: "Crédito", savi
 export default function AccountsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AccountOut | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
   const { data: accounts = [], isLoading } = useAccounts();
   const deleteMutation = useDeleteAccount();
+  const updateMutation = useUpdateAccount();
   const { toast } = useToast();
+
+  const visibleAccounts = accounts.filter((a) => (showArchived ? true : a.is_active));
+  const archivedCount = accounts.filter((a) => !a.is_active).length;
 
   async function handleDelete(id: string) {
     if (!confirm("¿Eliminar esta cuenta?")) return;
@@ -33,6 +40,15 @@ export default function AccountsPage() {
       toast({ title: "Cuenta eliminada" });
     } catch (err) {
       toast({ variant: "destructive", title: "Error al eliminar", description: getErrorMessage(err, "Intenta de nuevo.") });
+    }
+  }
+
+  async function handleToggleActive(account: AccountOut) {
+    try {
+      await updateMutation.mutateAsync({ id: account.id, is_active: !account.is_active });
+      toast({ title: account.is_active ? "Cuenta archivada" : "Cuenta reactivada" });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: getErrorMessage(err, "Intenta de nuevo.") });
     }
   }
 
@@ -45,13 +61,22 @@ export default function AccountsPage() {
         </Button>
       </div>
 
+      {archivedCount > 0 && (
+        <button
+          className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+          onClick={() => setShowArchived((s) => !s)}
+        >
+          {showArchived ? "Ocultar archivadas" : `Mostrar archivadas (${archivedCount})`}
+        </button>
+      )}
+
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="h-36 bg-muted animate-pulse rounded-lg" />
           ))}
         </div>
-      ) : accounts.length === 0 ? (
+      ) : visibleAccounts.length === 0 ? (
         <div className="text-center py-16">
           <Wallet className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground mb-4">Sin cuentas aún</p>
@@ -61,10 +86,10 @@ export default function AccountsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {accounts.map((account) => {
+          {visibleAccounts.map((account) => {
             const Icon = typeIcon[account.type as keyof typeof typeIcon] ?? Wallet;
             return (
-              <Card key={account.id} className="relative group">
+              <Card key={account.id} className={cn("group relative", !account.is_active && "opacity-60")}>
                 <CardHeader className="pb-2 flex flex-row items-start justify-between">
                   <div className="flex items-center gap-2">
                     <div className="p-2 rounded-md bg-primary/10">
@@ -74,6 +99,7 @@ export default function AccountsPage() {
                       <CardTitle className="text-base">{account.name}</CardTitle>
                       <p className="text-xs text-muted-foreground">
                         {typeLabel[account.type as keyof typeof typeLabel]}
+                        {!account.is_active && " · Archivada"}
                       </p>
                     </div>
                   </div>
@@ -81,16 +107,33 @@ export default function AccountsPage() {
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditing(account); setOpen(true); }}>
                       <Pencil className="h-3 w-3" />
                     </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      title={account.is_active ? "Archivar" : "Reactivar"}
+                      onClick={() => handleToggleActive(account)}
+                    >
+                      {account.is_active ? <Archive className="h-3 w-3" /> : <ArchiveRestore className="h-3 w-3" />}
+                    </Button>
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleDelete(account.id)}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">
-                    {formatCurrency(account.balance, account.currency)}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">{account.currency}</p>
+                <CardContent className="space-y-3">
+                  <div>
+                    <p className="text-2xl font-bold">
+                      {formatCurrency(account.balance, account.currency)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">{account.currency}</p>
+                  </div>
+                  <Link
+                    href={`/transactions?account_id=${account.id}`}
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                  >
+                    <ArrowLeftRight className="h-3 w-3" /> Ver transacciones
+                  </Link>
                 </CardContent>
               </Card>
             );
@@ -102,3 +145,4 @@ export default function AccountsPage() {
     </div>
   );
 }
+

@@ -93,7 +93,11 @@ export interface TransactionFilters {
   date_from?: string;
   date_to?: string;
   category_id?: string;
+  account_id?: string;
   type?: TransactionType;
+  search?: string;
+  limit?: number;
+  offset?: number;
 }
 
 export interface CategoryOut {
@@ -108,6 +112,13 @@ export interface CategoryOut {
 
 export interface CategoryCreate {
   name: string;
+  icon?: string | null;
+  color?: string | null;
+  is_income?: boolean;
+}
+
+export interface CategoryUpdate {
+  name?: string;
   icon?: string | null;
   color?: string | null;
   is_income?: boolean;

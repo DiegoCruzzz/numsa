@@ -17,9 +17,10 @@ Quick start con todo en Docker:
 git clone https://github.com/DiegoCruzzz/numsa.git
 cd numsa
 cp .env.example .env
-docker compose up -d --build
-docker compose exec backend alembic upgrade head  # no corre automático en dev
+make docker-dev
 ```
+
+(`make` sin argumentos muestra todos los atajos disponibles — desarrollo nativo, full-Docker, producción)
 
 - Frontend: http://localhost:3000
 - Backend: http://localhost:8000 (docs interactivos en `/docs`)

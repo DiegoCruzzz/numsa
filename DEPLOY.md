@@ -1,6 +1,6 @@
 # Numsa — Guía de despliegue y desarrollo
 
-Tres formas de correr el proyecto, según el caso:
+Tres formas de correr el proyecto, según el caso. Todas tienen un atajo en el `Makefile` de la raíz — corre `make` (sin argumentos) para ver el menú.
 
 1. **Desarrollo nativo** (recomendado para editar código) — backend y frontend corriendo directo en tu máquina, con hot-reload rápido; solo Postgres y Redis en Docker.
 2. **Desarrollo full-Docker** — todo en contenedores, útil para no instalar nada localmente o para reproducir el entorno exacto.
@@ -14,20 +14,10 @@ Por qué: correr Postgres/Redis en contenedores desechables evita instalarlos lo
 
 **Requisitos**: Docker Desktop, Python 3.12, Node 20.
 
-### Paso 1 — Postgres y Redis en Docker
+### Primera vez
 
 ```bash
-docker compose up -d postgres redis
-```
-
-Quedan expuestos en `localhost:5432` y `localhost:6379`.
-
-### Paso 2 — Backend nativo (venv)
-
-```bash
-cd backend
-python3.12 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+make install
 ```
 
 Crea `backend/.env` (no se sube al repo, ya está en `.gitignore`) apuntando a `localhost` en vez de a los nombres de servicio de Docker:
@@ -40,59 +30,50 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_DAYS=7
 CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 GEMINI_API_KEY=
-CHAT_MODEL=gemini/gemini-3-flash
+CHAT_MODEL=gemini/gemini-3.6-flash
 ```
 
-Aplica las migraciones y arranca:
-
-```bash
-.venv/bin/alembic upgrade head
-.venv/bin/uvicorn app.main:app --reload
-```
-
-Backend en `http://localhost:8000` (docs en `/docs`).
-
-### Paso 3 — Frontend nativo
-
-Crea `frontend/.env.local` (tampoco se sube al repo):
+Y `frontend/.env.local` (tampoco se sube al repo):
 
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend en `http://localhost:3000`.
-
 ### Día a día
 
-Con `.venv` y `node_modules` ya instalados, para retomar solo hace falta:
+```bash
+make dev
+```
+
+Levanta Postgres/Redis en Docker (esperando a que estén healthy), aplica migraciones, y corre backend + frontend nativos en paralelo. `Ctrl+C` detiene ambos. Backend en `http://localhost:8000` (docs en `/docs`), frontend en `http://localhost:3000`.
+
+Otros atajos útiles: `make migrate` (solo aplicar migraciones nuevas), `make stop` (parar Postgres/Redis sin tocar nada más).
+
+<details>
+<summary>Equivalente manual, sin Makefile</summary>
 
 ```bash
 docker compose up -d postgres redis
-cd backend && .venv/bin/uvicorn app.main:app --reload &
+cd backend && .venv/bin/alembic upgrade head && .venv/bin/uvicorn app.main:app --reload &
 cd frontend && npm run dev
 ```
+
+</details>
 
 ---
 
 ## 2. Desarrollo full-Docker
 
-Todo en contenedores, con `--reload`/`npm run dev` dentro y bind-mounts para hot-reload:
+Todo en contenedores, con `--reload`/`npm run dev` dentro y bind-mounts para hot-reload. Útil si no quieres instalar Python/Node localmente.
 
 ```bash
 cp .env.example .env
-docker compose up -d --build
-docker compose exec backend alembic upgrade head  # no corre automático en dev
+make docker-dev
 ```
 
 Frontend: `http://localhost:3000` · Backend: `http://localhost:8000`.
 
-Más lento para iterar que la vía nativa (rebuild de imagen al agregar una dependencia, sync de bind-mounts), pero no requiere instalar Python/Node localmente.
+Más lento para iterar que la vía nativa (rebuild de imagen al agregar una dependencia, sync de bind-mounts).
 
 ---
 
@@ -117,7 +98,7 @@ Completa en `.env`:
 - `GEMINI_API_KEY` — si quieres el chat de Fase 3 activo
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
+make docker-prod
 ```
 
 Verificar:
@@ -130,10 +111,16 @@ curl http://localhost:8000/health
 
 ```bash
 git pull
-docker compose -f docker-compose.prod.yml up -d --build
+make docker-prod
 ```
 
 Las migraciones corren solas al arrancar el backend — no hace falta ningún paso manual.
+
+### Parar todo
+
+```bash
+make down
+```
 
 ### Pendiente / notas
 

@@ -18,7 +18,7 @@ const schema = z.object({
   total_amount: z.coerce.number().positive("Debe ser mayor a 0"),
   remaining_amount: z.coerce.number().min(0),
   monthly_payment: z.coerce.number().min(0),
-  interest_rate: z.coerce.number().min(0).default(0),
+  interest_rate: z.coerce.number().min(0).max(999.99, "Máximo 999.99%").default(0),
   due_date: z.string().optional(),
   status: z.enum(["active", "paid", "negotiating"]).default("active"),
 });
@@ -96,16 +96,19 @@ export function DebtForm({ open, onClose, editing }: Props) {
             <div className="space-y-2">
               <Label>Monto restante</Label>
               <Input type="number" step="0.01" {...register("remaining_amount")} />
+              {errors.remaining_amount && <p className="text-xs text-destructive">{errors.remaining_amount.message}</p>}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Pago mensual</Label>
               <Input type="number" step="0.01" {...register("monthly_payment")} />
+              {errors.monthly_payment && <p className="text-xs text-destructive">{errors.monthly_payment.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Tasa interés (%)</Label>
-              <Input type="number" step="0.01" {...register("interest_rate")} />
+              <Label>Tasa de interés anual (%)</Label>
+              <Input type="number" step="0.01" max="999.99" placeholder="Ej: 2.5" {...register("interest_rate")} />
+              {errors.interest_rate && <p className="text-xs text-destructive">{errors.interest_rate.message}</p>}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
