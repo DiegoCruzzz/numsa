@@ -22,9 +22,11 @@ Monorepo: backend en /backend, frontend en /frontend.
 - components/layout/Header.tsx — saludo dinámico + logout
 
 ## Archivos clave — backend
-- app/models/ — User, Account, Category, Transaction, Debt, Budget
+- app/models/ — User, Account, Category, Transaction, Debt, Budget, ChatMessage
 - app/schemas/ — Pydantic v2
 - app/services/ — lógica de negocio (nunca en rutas)
+- app/services/agent.py — loop de tool-calling del agente de chat (litellm)
+- app/services/agent_tools.py — tools del agente, envuelven los services existentes
 - app/api/v1/ — endpoints REST
 - alembic/ — migraciones
 
@@ -75,15 +77,10 @@ Monorepo: backend en /backend, frontend en /frontend.
 ## Fases completadas
 - Fase 1 ✅ — Backend base, modelos, auth, Docker, Alembic
 - Fase 2 ✅ — Dashboard completo, auth UI, páginas CRUD, hooks, tipos
+- Fase 3 ✅ — Agente IA por chat (LiteLLM, no LangChain — ver PROJECT.md)
 
 ## Fase actual
-Ajustes estéticos post-Fase 2 (antes de Fase 3)
-
-## Fase 3 — próxima
-Agente IA con LangChain + Claude API:
-- Registro de gastos por chat
-- Consultas en lenguaje natural
-- Alertas y recomendaciones
+Fase 3 construida, pendiente probar con API key real de Gemini. Después: Fase 4 (mensajería) o la idea de onboarding con encuesta/chat anotada en PROJECT.md.
 
 ## Reglas para Claude Code en este proyecto
 - Leer CONTEXT.md al inicio de cada sesión

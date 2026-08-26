@@ -9,11 +9,13 @@ import {
   TrendingDown,
   PieChart,
   DollarSign,
+  MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", icon: LayoutDashboard, label: "Resumen" },
+  { href: "/chat", icon: MessageCircle, label: "Chat" },
   { href: "/transactions", icon: ArrowLeftRight, label: "Transacciones" },
   { href: "/accounts", icon: CreditCard, label: "Cuentas" },
   { href: "/debts", icon: TrendingDown, label: "Deudas" },

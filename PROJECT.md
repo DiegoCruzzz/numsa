@@ -75,13 +75,33 @@ Monorepo: /backend (FastAPI) + /frontend (Next.js)
     layout.tsx — script anti-flash, suppressHydrationWarning
     login/page.tsx — ícono Landmark verde, toggle temporal sin persistir
 
-### Pendiente
-- Fase 3 ⏳ — Agente IA
-  LangChain + Claude API
-  Registro de gastos por chat en lenguaje natural
-  Consultas ("¿cuánto gasté esta semana?")
-  Alertas y recomendaciones personalizadas
+- Fase 3 ✅ — Agente IA (construido, falta probar con API key real)
+  Decisión: LiteLLM (no LangChain) — capa ligera de abstracción de proveedor,
+  sin el peso de un framework de agents/chains completo. Proveedor por
+  defecto: Gemini vía Google AI Studio (free tier), swap de proveedor
+  cambiando `CHAT_MODEL`/`GEMINI_API_KEY` en `.env`, sin tocar código.
+  Backend:
+    0003_chat_messages.py — migración Alembic: tabla chat_messages
+    models/chat_message.py — historial de conversación (user/assistant)
+    services/agent_tools.py — tools: create_transaction, query_transactions_summary,
+      list_accounts, list_categories, budget_status (envuelven los services existentes)
+    services/agent.py — loop de tool-calling con litellm.acompletion, system prompt,
+      persiste historial, maneja errores del LLM sin tumbar el endpoint
+    api/v1/chat.py — POST /chat, GET /chat/history
+  Frontend:
+    lib/hooks/useChat.ts — historial + envío de mensajes vía React Query
+    app/(dashboard)/chat/page.tsx — UI de chat, burbujas usuario/asistente
+    Sidebar.tsx — entrada "Chat"
+  Nota sobre alertas/recomendaciones: sin infraestructura de push todavía
+  (Fase 4 no está construida), así que el agente las da conversacionalmente
+  cuando el usuario pregunta o al registrar un gasto que topa un presupuesto
+  (via budget_status), no como notificaciones proactivas.
+  Nota sobre seguridad: litellm sufrió un ataque a su cadena de suministro
+  en marzo 2026 (versiones 1.82.7/1.82.8 comprometidas) — quedó fijado en
+  requirements.txt a 1.85.0, posterior al incidente y a los refuerzos de
+  seguridad del pipeline de releases.
 
+### Pendiente
 - Fase 4 ⏳ — Mensajería
   WhatsApp via Twilio o Telegram Bot
   Registrar gastos por mensaje
@@ -91,6 +111,11 @@ Monorepo: /backend (FastAPI) + /frontend (Next.js)
   Multi-usuario, roles y permisos
   Workspaces para negocios
   API pública para integraciones
+
+### Ideas futuras (sin fase asignada)
+- Onboarding de usuario nuevo: encuesta o charla ligera con el agente para
+  llenar cuentas/saldos/categorías iniciales, en vez de arrancar con el
+  dashboard en $0.00. Depende del agente de Fase 3 ya construido.
 
 ## Cómo trabajamos
 - Este proyecto (Claude.ai) → planeación, decisiones, prompts para Code, dudas
@@ -108,15 +133,8 @@ Monorepo: /backend (FastAPI) + /frontend (Next.js)
 - `.dockerignore` en frontend y backend para no filtrar `node_modules`/`.next` locales (macOS) a la imagen de Linux
 - `docker-compose.prod.yml` nuevo — standalone, sin bind-mounts de desarrollo, con `restart: unless-stopped` y variables obligatorias (falla explícito si falta `SECRET_KEY`, `CORS_ORIGINS` o `NEXT_PUBLIC_API_URL`)
 
-### Cómo desplegar en el server (mini PC)
-1. `git clone`/`git pull` del repo
-2. Copiar `.env.example` a `.env` y llenar con los valores reales del server:
-   - `SECRET_KEY`: generar uno nuevo con `openssl rand -hex 32` — nunca usar el default
-   - `POSTGRES_PASSWORD`: una contraseña real, no la default
-   - `CORS_ORIGINS`: `http://IP-DEL-SERVER:3000` (o el dominio, cuando exista)
-   - `NEXT_PUBLIC_API_URL`: `http://IP-DEL-SERVER:8000`
-3. `docker compose -f docker-compose.prod.yml up -d --build`
-4. Verificar `http://IP-DEL-SERVER:8000/health` y `http://IP-DEL-SERVER:3000`
+### Cómo desplegar
+Pasos detallados (server y actualización de una instalación existente) en [DEPLOY.md](DEPLOY.md). Ahí también está documentado el flujo de desarrollo nativo (venv + npm) y el full-Docker.
 
 ### Pendiente antes de compartir con el círculo cercano
 - Sin HTTPS todavía (decisión consciente: sin dominio/proxy por ahora) — el login viaja en claro si no se agrega TLS. Evaluar Caddy o Cloudflare Tunnel cuando haya dominio.
@@ -136,4 +154,6 @@ Monorepo: /backend (FastAPI) + /frontend (Next.js)
 | May 2026 | Script anti-flash en <head> | Evita parpadeo de tema al cargar la página |
 
 ## Próxima sesión
-Arrancar Fase 3 — Agente IA (LangChain + Claude API)
+Probar el chat de Fase 3 con una API key real de Gemini (aistudio.google.com/apikey)
+en `.env` → `GEMINI_API_KEY`. Después, arrancar Fase 4 — Mensajería, o la idea de
+onboarding con encuesta/chat anotada arriba.

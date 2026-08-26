@@ -189,3 +189,16 @@ export interface BudgetStatus {
   remaining: number;
   used_pct: number;
 }
+
+export type ChatRole = "user" | "assistant";
+
+export interface ChatMessageOut {
+  id: string;
+  role: ChatRole;
+  content: string;
+  created_at: string;
+}
+
+export interface ChatResponse {
+  reply: string;
+}
