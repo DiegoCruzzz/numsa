@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   ArrowLeftRight,
-  CreditCard,
+  Wallet,
   TrendingDown,
   PieChart,
   DollarSign,
@@ -20,10 +20,10 @@ const navItems = [
   { href: "/", icon: LayoutDashboard, label: "Resumen" },
   { href: "/chat", icon: MessageCircle, label: "Chat" },
   { href: "/transactions", icon: ArrowLeftRight, label: "Transacciones" },
-  { href: "/accounts", icon: CreditCard, label: "Cuentas" },
-  { href: "/categories", icon: Tag, label: "Categorías" },
-  { href: "/debts", icon: TrendingDown, label: "Deudas" },
+  { href: "/accounts", icon: Wallet, label: "Cuentas" },
+  { href: "/debts", icon: TrendingDown, label: "Créditos" },
   { href: "/budgets", icon: PieChart, label: "Presupuestos" },
+  { href: "/categories", icon: Tag, label: "Categorías" },
 ];
 
 export function Sidebar() {

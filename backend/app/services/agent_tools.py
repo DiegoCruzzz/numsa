@@ -30,14 +30,15 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "create_account",
-            "description": "Crea una cuenta nueva (efectivo, débito, crédito o ahorro).",
+            "description": "Crea una cuenta nueva (efectivo, débito o ahorro). Las tarjetas de crédito y préstamos se manejan con create_debt, no aquí.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "name": {"type": "string"},
-                    "type": {"type": "string", "enum": ["cash", "debit", "credit", "savings"]},
+                    "type": {"type": "string", "enum": ["cash", "debit", "savings"]},
                     "balance": {"type": "number", "description": "Saldo inicial, default 0"},
                     "currency": {"type": "string", "description": "Default MXN"},
+                    "interest_rate": {"type": "number", "description": "Tasa de interés anual (%), solo tiene sentido si type='savings'"},
                 },
                 "required": ["name", "type"],
             },
@@ -47,15 +48,16 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "update_account",
-            "description": "Actualiza una cuenta existente (nombre, tipo, saldo, moneda o si está activa).",
+            "description": "Actualiza una cuenta existente (nombre, tipo, saldo, moneda, tasa de interés o si está activa).",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "account_name": {"type": "string", "description": "Nombre actual de la cuenta. Opcional si el usuario solo tiene una."},
                     "new_name": {"type": "string"},
-                    "type": {"type": "string", "enum": ["cash", "debit", "credit", "savings"]},
+                    "type": {"type": "string", "enum": ["cash", "debit", "savings"]},
                     "balance": {"type": "number"},
                     "currency": {"type": "string"},
+                    "interest_rate": {"type": "number", "description": "Tasa de interés anual (%), solo tiene sentido si type='savings'"},
                     "is_active": {"type": "boolean"},
                 },
                 "required": [],
@@ -149,16 +151,20 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "create_debt",
-            "description": "Registra una deuda nueva (algo que el usuario debe a un acreedor).",
+            "description": "Registra un crédito nuevo (algo que el usuario debe): tarjeta de crédito, préstamo u otra deuda.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "creditor": {"type": "string", "description": "A quién se le debe, ej. 'Tarjeta BBVA'"},
+                    "subtype": {"type": "string", "enum": ["credit_card", "loan", "other"], "description": "Tipo de crédito, default 'other'"},
                     "total_amount": {"type": "number"},
                     "remaining_amount": {"type": "number", "description": "Si no se da, se asume igual a total_amount"},
                     "monthly_payment": {"type": "number"},
                     "interest_rate": {"type": "number", "description": "Porcentaje, default 0"},
-                    "due_date": {"type": "string", "description": "YYYY-MM-DD, opcional"},
+                    "due_date": {"type": "string", "description": "YYYY-MM-DD, opcional. Solo aplica a préstamos/otro."},
+                    "credit_limit": {"type": "number", "description": "Límite de crédito, solo aplica si subtype='credit_card'"},
+                    "cutoff_day": {"type": "integer", "description": "Día de corte del mes (1-31), solo tarjetas de crédito"},
+                    "payment_due_day": {"type": "integer", "description": "Día límite de pago del mes (1-31), solo tarjetas de crédito"},
                     "status": {"type": "string", "enum": ["active", "paid", "negotiating"]},
                 },
                 "required": ["creditor", "total_amount", "monthly_payment"],
@@ -169,20 +175,32 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "update_debt",
-            "description": "Actualiza una deuda existente o registra un abono/pago (usa payment_amount para restar del saldo pendiente en vez de calcular tú el nuevo total).",
+            "description": "Actualiza un crédito existente o registra un abono/pago (usa payment_amount para restar del saldo pendiente en vez de calcular tú el nuevo total).",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "creditor_name": {"type": "string", "description": "Nombre del acreedor tal como está registrado"},
+                    "subtype": {"type": "string", "enum": ["credit_card", "loan", "other"]},
                     "payment_amount": {"type": "number", "description": "Monto abonado — se resta del remaining_amount actual"},
                     "remaining_amount": {"type": "number", "description": "Nuevo saldo pendiente absoluto, alternativa a payment_amount"},
                     "monthly_payment": {"type": "number"},
                     "interest_rate": {"type": "number"},
                     "due_date": {"type": "string", "description": "YYYY-MM-DD"},
+                    "credit_limit": {"type": "number", "description": "Límite de crédito, solo tarjetas de crédito"},
+                    "cutoff_day": {"type": "integer", "description": "Día de corte del mes (1-31), solo tarjetas de crédito"},
+                    "payment_due_day": {"type": "integer", "description": "Día límite de pago del mes (1-31), solo tarjetas de crédito"},
                     "status": {"type": "string", "enum": ["active", "paid", "negotiating"]},
                 },
                 "required": ["creditor_name"],
             },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_debts",
+            "description": "Lista los créditos del usuario (tarjetas de crédito, préstamos y otras deudas) con su saldo pendiente. Úsala si necesitas saber qué créditos existen antes de actualizar uno.",
+            "parameters": {"type": "object", "properties": {}, "required": []},
         },
     },
     {
@@ -270,11 +288,11 @@ async def _resolve_category(
 async def _resolve_debt(user_id: uuid.UUID, db: AsyncSession, creditor_name: str) -> DebtOut | str:
     debts = await debt_service.get_all(user_id, db)
     if not debts:
-        return "El usuario no tiene deudas registradas todavía."
+        return "El usuario no tiene créditos registrados todavía."
     match = next((d for d in debts if d.creditor.lower() == creditor_name.lower()), None)
     if not match:
         names = ", ".join(d.creditor for d in debts)
-        return f"No encontré una deuda con '{creditor_name}'. Deudas registradas: {names}."
+        return f"No encontré un crédito con '{creditor_name}'. Créditos registrados: {names}."
     return match
 
 
@@ -295,9 +313,19 @@ async def list_accounts(user_id: uuid.UUID, db: AsyncSession) -> str:
 
 
 async def create_account(
-    user_id: uuid.UUID, db: AsyncSession, name: str, type: str, balance: float = 0, currency: str = "MXN"
+    user_id: uuid.UUID,
+    db: AsyncSession,
+    name: str,
+    type: str,
+    balance: float = 0,
+    currency: str = "MXN",
+    interest_rate: float | None = None,
 ) -> str:
-    account = await account_service.create(AccountCreate(name=name, type=type, balance=balance, currency=currency), user_id, db)
+    account = await account_service.create(
+        AccountCreate(name=name, type=type, balance=balance, currency=currency, interest_rate=interest_rate),
+        user_id,
+        db,
+    )
     return json.dumps({"ok": True, "id": str(account.id), "name": account.name, "balance": account.balance})
 
 
@@ -309,6 +337,7 @@ async def update_account(
     type: str | None = None,
     balance: float | None = None,
     currency: str | None = None,
+    interest_rate: float | None = None,
     is_active: bool | None = None,
 ) -> str:
     account = await _resolve_account(user_id, db, account_name)
@@ -316,7 +345,10 @@ async def update_account(
         return account
     updated = await account_service.update(
         account.id,
-        AccountUpdate(name=new_name, type=type, balance=balance, currency=currency, is_active=is_active),
+        AccountUpdate(
+            name=new_name, type=type, balance=balance, currency=currency,
+            interest_rate=interest_rate, is_active=is_active,
+        ),
         user_id,
         db,
     )
@@ -461,42 +493,64 @@ async def query_transactions_summary(
     )
 
 
+async def list_debts(user_id: uuid.UUID, db: AsyncSession) -> str:
+    debts = await debt_service.get_all(user_id, db)
+    return json.dumps(
+        [
+            {"creditor": d.creditor, "subtype": d.subtype, "remaining_amount": d.remaining_amount, "status": d.status}
+            for d in debts
+        ]
+    )
+
+
 async def create_debt(
     user_id: uuid.UUID,
     db: AsyncSession,
     creditor: str,
     total_amount: float,
     monthly_payment: float,
+    subtype: str = "other",
     remaining_amount: float | None = None,
     interest_rate: float = 0,
     due_date: str | None = None,
+    credit_limit: float | None = None,
+    cutoff_day: int | None = None,
+    payment_due_day: int | None = None,
     status: str = "active",
 ) -> str:
     debt = await debt_service.create(
         DebtCreate(
             creditor=creditor,
+            subtype=subtype,
             total_amount=total_amount,
             remaining_amount=remaining_amount if remaining_amount is not None else total_amount,
             monthly_payment=monthly_payment,
             interest_rate=interest_rate,
             due_date=_parse_date(due_date) if due_date else None,
+            credit_limit=credit_limit,
+            cutoff_day=cutoff_day,
+            payment_due_day=payment_due_day,
             status=status,
         ),
         user_id,
         db,
     )
-    return json.dumps({"ok": True, "id": str(debt.id), "creditor": debt.creditor, "remaining_amount": debt.remaining_amount})
+    return json.dumps({"ok": True, "id": str(debt.id), "creditor": debt.creditor, "subtype": debt.subtype, "remaining_amount": debt.remaining_amount})
 
 
 async def update_debt(
     user_id: uuid.UUID,
     db: AsyncSession,
     creditor_name: str,
+    subtype: str | None = None,
     payment_amount: float | None = None,
     remaining_amount: float | None = None,
     monthly_payment: float | None = None,
     interest_rate: float | None = None,
     due_date: str | None = None,
+    credit_limit: float | None = None,
+    cutoff_day: int | None = None,
+    payment_due_day: int | None = None,
     status: str | None = None,
 ) -> str:
     debt = await _resolve_debt(user_id, db, creditor_name)
@@ -512,10 +566,14 @@ async def update_debt(
     updated = await debt_service.update(
         debt.id,
         DebtUpdate(
+            subtype=subtype,
             remaining_amount=new_remaining,
             monthly_payment=monthly_payment,
             interest_rate=interest_rate,
             due_date=_parse_date(due_date) if due_date else None,
+            credit_limit=credit_limit,
+            cutoff_day=cutoff_day,
+            payment_due_day=payment_due_day,
             status=status,
         ),
         user_id,
@@ -595,6 +653,7 @@ TOOL_EXECUTORS = {
     "create_transaction": create_transaction,
     "update_transaction": update_transaction,
     "query_transactions_summary": query_transactions_summary,
+    "list_debts": list_debts,
     "create_debt": create_debt,
     "update_debt": update_debt,
     "budget_status": budget_status,

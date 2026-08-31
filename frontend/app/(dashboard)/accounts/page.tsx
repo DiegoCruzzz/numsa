@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, Pencil, Trash2, Banknote, CreditCard, Wallet, PiggyBank, ArrowLeftRight, Archive, ArchiveRestore } from "lucide-react";
+import { Plus, Pencil, Trash2, Banknote, CreditCard, Wallet, PiggyBank, ArrowLeftRight, Archive, ArchiveRestore, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountForm } from "@/components/accounts/AccountForm";
-import { useAccounts, useDeleteAccount, useUpdateAccount } from "@/lib/hooks/useAccounts";
+import { useAccounts, useDeleteAccount, useUpdateAccount, useApplyInterest } from "@/lib/hooks/useAccounts";
 import { useToast } from "@/lib/hooks/useToast";
 import { getErrorMessage } from "@/lib/errors";
 import { formatCurrency } from "@/lib/format";
@@ -16,10 +16,9 @@ import type { AccountOut } from "@/types/api";
 const typeIcon = {
   cash: Banknote,
   debit: CreditCard,
-  credit: CreditCard,
   savings: PiggyBank,
 };
-const typeLabel = { cash: "Efectivo", debit: "Débito", credit: "Crédito", savings: "Ahorro" };
+const typeLabel = { cash: "Efectivo", debit: "Débito", savings: "Ahorro" };
 
 export default function AccountsPage() {
   const [open, setOpen] = useState(false);
@@ -28,6 +27,7 @@ export default function AccountsPage() {
   const { data: accounts = [], isLoading } = useAccounts();
   const deleteMutation = useDeleteAccount();
   const updateMutation = useUpdateAccount();
+  const applyInterestMutation = useApplyInterest();
   const { toast } = useToast();
 
   const visibleAccounts = accounts.filter((a) => (showArchived ? true : a.is_active));
@@ -49,6 +49,16 @@ export default function AccountsPage() {
       toast({ title: account.is_active ? "Cuenta archivada" : "Cuenta reactivada" });
     } catch (err) {
       toast({ variant: "destructive", title: "Error", description: getErrorMessage(err, "Intenta de nuevo.") });
+    }
+  }
+
+  async function handleApplyInterest(account: AccountOut) {
+    if (!confirm(`¿Aplicar el interés de este mes a "${account.name}"?`)) return;
+    try {
+      const res = await applyInterestMutation.mutateAsync(account.id);
+      toast({ title: `Se aplicó ${formatCurrency(res.interest_amount, account.currency)} de interés` });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: getErrorMessage(err, "No se pudo aplicar el interés.") });
     }
   }
 
@@ -104,6 +114,17 @@ export default function AccountsPage() {
                     </div>
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {account.type === "savings" && account.interest_rate ? (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        title="Aplicar interés"
+                        onClick={() => handleApplyInterest(account)}
+                      >
+                        <Sparkles className="h-3 w-3" />
+                      </Button>
+                    ) : null}
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditing(account); setOpen(true); }}>
                       <Pencil className="h-3 w-3" />
                     </Button>
@@ -126,7 +147,10 @@ export default function AccountsPage() {
                     <p className="text-2xl font-bold">
                       {formatCurrency(account.balance, account.currency)}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">{account.currency}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {account.currency}
+                      {account.type === "savings" && account.interest_rate ? ` · ${account.interest_rate}% anual` : ""}
+                    </p>
                   </div>
                   <Link
                     href={`/transactions?account_id=${account.id}`}

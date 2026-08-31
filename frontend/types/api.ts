@@ -31,7 +31,7 @@ export interface UserCreate {
   currency?: string;
 }
 
-export type AccountType = "cash" | "debit" | "credit" | "savings";
+export type AccountType = "cash" | "debit" | "savings";
 
 export interface AccountOut {
   id: string;
@@ -40,6 +40,7 @@ export interface AccountOut {
   type: AccountType;
   balance: number;
   currency: string;
+  interest_rate: number | null;
   is_active: boolean;
   created_at: string;
 }
@@ -49,6 +50,7 @@ export interface AccountCreate {
   type: AccountType;
   balance?: number;
   currency?: string;
+  interest_rate?: number | null;
 }
 
 export interface AccountUpdate {
@@ -56,7 +58,14 @@ export interface AccountUpdate {
   type?: AccountType;
   balance?: number;
   currency?: string;
+  interest_rate?: number | null;
   is_active?: boolean;
+}
+
+export interface ApplyInterestResponse {
+  account: AccountOut;
+  transaction: TransactionOut;
+  interest_amount: number;
 }
 
 export type TransactionType = "income" | "expense" | "transfer";
@@ -125,36 +134,49 @@ export interface CategoryUpdate {
 }
 
 export type DebtStatus = "active" | "paid" | "negotiating";
+export type DebtSubtype = "credit_card" | "loan" | "other";
 
 export interface DebtOut {
   id: string;
   user_id: string;
   creditor: string;
+  subtype: DebtSubtype;
   total_amount: number;
   remaining_amount: number;
   monthly_payment: number;
   interest_rate: number;
   due_date: string | null;
+  credit_limit: number | null;
+  cutoff_day: number | null;
+  payment_due_day: number | null;
   status: DebtStatus;
   created_at: string;
 }
 
 export interface DebtCreate {
   creditor: string;
+  subtype?: DebtSubtype;
   total_amount: number;
   remaining_amount: number;
   monthly_payment: number;
   interest_rate?: number;
   due_date?: string | null;
+  credit_limit?: number | null;
+  cutoff_day?: number | null;
+  payment_due_day?: number | null;
   status?: DebtStatus;
 }
 
 export interface DebtUpdate {
   creditor?: string;
+  subtype?: DebtSubtype;
   remaining_amount?: number;
   monthly_payment?: number;
   interest_rate?: number;
   due_date?: string | null;
+  credit_limit?: number | null;
+  cutoff_day?: number | null;
+  payment_due_day?: number | null;
   status?: DebtStatus;
 }
 

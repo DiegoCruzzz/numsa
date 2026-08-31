@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Trash2, TrendingDown, HandCoins } from "lucide-react";
+import { Plus, Pencil, Trash2, TrendingDown, HandCoins, CreditCard, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -12,6 +12,7 @@ import { useDebts, useDeleteDebt } from "@/lib/hooks/useDebts";
 import { useToast } from "@/lib/hooks/useToast";
 import { getErrorMessage } from "@/lib/errors";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { nextOccurrenceOfDay } from "@/lib/dates";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
 import type { DebtOut } from "@/types/api";
@@ -26,17 +27,36 @@ const statusColor: Record<string, string> = {
   paid: "text-emerald-500",
   negotiating: "text-amber-500",
 };
+const subtypeLabel: Record<string, string> = {
+  credit_card: "Tarjeta de crédito",
+  loan: "Préstamo",
+  other: "Otro",
+};
+const subtypeIcon: Record<string, typeof CreditCard> = {
+  credit_card: CreditCard,
+  loan: Landmark,
+  other: TrendingDown,
+};
 
 type SortOption = "due_date" | "status" | "remaining";
+
+function effectiveDueDate(debt: DebtOut): Date | null {
+  if (debt.subtype === "credit_card" && debt.payment_due_day) {
+    return nextOccurrenceOfDay(debt.payment_due_day);
+  }
+  return debt.due_date ? new Date(`${debt.due_date}T00:00:00`) : null;
+}
 
 function sortDebts(debts: DebtOut[], sort: SortOption): DebtOut[] {
   const copy = [...debts];
   switch (sort) {
     case "due_date":
       return copy.sort((a, b) => {
-        if (!a.due_date) return 1;
-        if (!b.due_date) return -1;
-        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+        const dateA = effectiveDueDate(a);
+        const dateB = effectiveDueDate(b);
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateA.getTime() - dateB.getTime();
       });
     case "status":
       return copy.sort((a, b) => a.status.localeCompare(b.status));
@@ -58,10 +78,10 @@ export default function DebtsPage() {
   const currency = useAuthStore((s) => s.user?.currency ?? "MXN");
 
   async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar esta deuda?")) return;
+    if (!confirm("¿Eliminar este crédito?")) return;
     try {
       await deleteMutation.mutateAsync(id);
-      toast({ title: "Deuda eliminada" });
+      toast({ title: "Crédito eliminado" });
     } catch (err) {
       toast({ variant: "destructive", title: "Error al eliminar", description: getErrorMessage(err, "Intenta de nuevo.") });
     }
@@ -72,9 +92,9 @@ export default function DebtsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Deudas</h1>
+        <h1 className="text-2xl font-bold">Créditos</h1>
         <Button onClick={() => { setEditing(null); setOpen(true); }} className="gap-2">
-          <Plus className="h-4 w-4" /> Nueva deuda
+          <Plus className="h-4 w-4" /> Nuevo crédito
         </Button>
       </div>
 
@@ -83,7 +103,7 @@ export default function DebtsPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-sm text-muted-foreground">Deuda total activa</p>
+                <p className="text-sm text-muted-foreground">Crédito total activo</p>
                 <p className="text-2xl font-bold text-destructive">
                   {formatCurrency(summary.data.total_debt, currency)}
                 </p>
@@ -127,9 +147,9 @@ export default function DebtsPage() {
       ) : sortedDebts.length === 0 ? (
         <div className="text-center py-16">
           <TrendingDown className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground mb-4">Sin deudas registradas</p>
+          <p className="text-muted-foreground mb-4">Sin créditos registrados</p>
           <Button onClick={() => { setEditing(null); setOpen(true); }} variant="outline" className="gap-2">
-            <Plus className="h-4 w-4" /> Agregar deuda
+            <Plus className="h-4 w-4" /> Agregar crédito
           </Button>
         </div>
       ) : (
@@ -137,14 +157,21 @@ export default function DebtsPage() {
           {sortedDebts.map((debt) => {
             const paid = debt.total_amount - debt.remaining_amount;
             const pct = debt.total_amount > 0 ? (paid / debt.total_amount) * 100 : 0;
+            const SubtypeIcon = subtypeIcon[debt.subtype] ?? TrendingDown;
             return (
               <Card key={debt.id} className="group">
                 <CardHeader className="pb-2 flex flex-row items-start justify-between">
-                  <div>
-                    <CardTitle className="text-base">{debt.creditor}</CardTitle>
-                    <p className={cn("text-xs font-medium", statusColor[debt.status])}>
-                      {statusLabel[debt.status]}
-                    </p>
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-md bg-primary/10">
+                      <SubtypeIcon className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base">{debt.creditor}</CardTitle>
+                      <p className="text-xs text-muted-foreground">{subtypeLabel[debt.subtype]}</p>
+                      <p className={cn("text-xs font-medium", statusColor[debt.status])}>
+                        {statusLabel[debt.status]}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     {debt.status === "active" && (
@@ -168,21 +195,34 @@ export default function DebtsPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Total</span>
-                    <span className="font-semibold">{formatCurrency(debt.total_amount, currency)}</span>
+                    <span className="text-muted-foreground">
+                      {debt.subtype === "credit_card" ? "Límite" : "Total"}
+                    </span>
+                    <span className="font-semibold">
+                      {formatCurrency(debt.subtype === "credit_card" ? debt.credit_limit ?? 0 : debt.total_amount, currency)}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Restante</span>
+                    <span className="text-muted-foreground">
+                      {debt.subtype === "credit_card" ? "Debes" : "Restante"}
+                    </span>
                     <span className="font-semibold text-destructive">{formatCurrency(debt.remaining_amount, currency)}</span>
                   </div>
                   <div className="space-y-1">
                     <Progress value={pct} className="h-2" />
                     <p className="text-xs text-muted-foreground">{pct.toFixed(1)}% pagado</p>
                   </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Pago mensual: {formatCurrency(debt.monthly_payment, currency)}</span>
-                    {debt.due_date && <span>Vence: {formatDate(debt.due_date)}</span>}
-                  </div>
+                  {debt.subtype === "credit_card" ? (
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      {debt.cutoff_day && <span>Corte: día {debt.cutoff_day}</span>}
+                      {debt.payment_due_day && <span>Pago: día {debt.payment_due_day}</span>}
+                    </div>
+                  ) : (
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Pago mensual: {formatCurrency(debt.monthly_payment, currency)}</span>
+                      {debt.due_date && <span>Vence: {formatDate(debt.due_date)}</span>}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );

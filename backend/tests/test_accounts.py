@@ -75,6 +75,58 @@ async def test_account_not_found(auth_client):
     assert resp.status_code == 404
 
 
+async def test_create_savings_account_with_interest_rate(auth_client):
+    client, headers, _ = auth_client
+    resp = await client.post(
+        "/api/v1/accounts",
+        json={"name": "Ahorros", "type": "savings", "balance": 10000, "interest_rate": 12},
+        headers=headers,
+    )
+    assert resp.status_code == 201
+    assert resp.json()["interest_rate"] == 12
+
+
+async def test_apply_interest_increments_balance_and_creates_transaction(auth_client):
+    client, headers, _ = auth_client
+    created = await client.post(
+        "/api/v1/accounts",
+        json={"name": "Ahorros", "type": "savings", "balance": 12000, "interest_rate": 12},
+        headers=headers,
+    )
+    acc_id = created.json()["id"]
+
+    resp = await client.post(f"/api/v1/accounts/{acc_id}/apply-interest", headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["interest_amount"] == 120.0
+    assert body["account"]["balance"] == 12120.0
+    assert body["transaction"]["type"] == "income"
+    assert body["transaction"]["account_id"] == acc_id
+
+    tx_list = await client.get("/api/v1/transactions", headers=headers)
+    assert any(t["id"] == body["transaction"]["id"] for t in tx_list.json())
+
+
+async def test_apply_interest_rejects_non_savings_account(auth_client):
+    client, headers, _ = auth_client
+    created = await client.post(
+        "/api/v1/accounts", json={"name": "Efectivo", "type": "cash", "balance": 1000}, headers=headers
+    )
+    acc_id = created.json()["id"]
+    resp = await client.post(f"/api/v1/accounts/{acc_id}/apply-interest", headers=headers)
+    assert resp.status_code == 400
+
+
+async def test_apply_interest_rejects_missing_rate(auth_client):
+    client, headers, _ = auth_client
+    created = await client.post(
+        "/api/v1/accounts", json={"name": "Ahorros", "type": "savings", "balance": 1000}, headers=headers
+    )
+    acc_id = created.json()["id"]
+    resp = await client.post(f"/api/v1/accounts/{acc_id}/apply-interest", headers=headers)
+    assert resp.status_code == 400
+
+
 async def test_cannot_access_another_users_account(auth_client, client):
     client1, headers1, _ = auth_client
     created = await client1.post("/api/v1/accounts", json={"name": "Privada", "type": "cash"}, headers=headers1)

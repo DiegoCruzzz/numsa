@@ -16,6 +16,41 @@ async def test_create_debt(auth_client):
     assert resp.json()["status"] == "active"
 
 
+async def test_create_debt_defaults_subtype_other(auth_client):
+    client, headers, _ = auth_client
+    resp = await client.post(
+        "/api/v1/debts",
+        json={"creditor": "Préstamo personal", "total_amount": 5000, "remaining_amount": 5000, "monthly_payment": 500},
+        headers=headers,
+    )
+    assert resp.status_code == 201
+    assert resp.json()["subtype"] == "other"
+
+
+async def test_create_debt_with_credit_card_subtype(auth_client):
+    client, headers, _ = auth_client
+    resp = await client.post(
+        "/api/v1/debts",
+        json={
+            "creditor": "Amex Platinum",
+            "subtype": "credit_card",
+            "total_amount": 50000,
+            "remaining_amount": 12000,
+            "monthly_payment": 0,
+            "credit_limit": 50000,
+            "cutoff_day": 5,
+            "payment_due_day": 20,
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["subtype"] == "credit_card"
+    assert body["credit_limit"] == 50000
+    assert body["cutoff_day"] == 5
+    assert body["payment_due_day"] == 20
+
+
 async def test_create_debt_rejects_interest_rate_overflow(auth_client):
     """Regresión: interest_rate=2300 causaba un 500 crudo de Postgres (NUMERIC(5,2) overflow)."""
     client, headers, _ = auth_client

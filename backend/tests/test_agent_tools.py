@@ -24,6 +24,11 @@ async def test_create_account_tool(db_session, user_id):
     assert accounts[0]["name"] == "Efectivo"
 
 
+async def test_create_account_tool_rejects_credit_type(db_session, user_id):
+    with pytest.raises(Exception):
+        await agent_tools.create_account(user_id, db_session, name="Tarjeta", type="credit", balance=0)
+
+
 async def test_create_transaction_resolves_existing_category(db_session, user_id):
     await agent_tools.create_account(user_id, db_session, name="Efectivo", type="cash", balance=1000)
     result = await agent_tools.create_transaction(
@@ -81,6 +86,28 @@ async def test_create_debt_defaults_remaining_to_total(db_session, user_id):
     assert result["remaining_amount"] == 5000
 
 
+async def test_create_debt_tool_with_credit_card_subtype(db_session, user_id):
+    result = json.loads(
+        await agent_tools.create_debt(
+            user_id,
+            db_session,
+            creditor="Amex",
+            subtype="credit_card",
+            total_amount=50000,
+            monthly_payment=0,
+            credit_limit=50000,
+            cutoff_day=5,
+            payment_due_day=20,
+        )
+    )
+    assert result["ok"] is True
+    assert result["subtype"] == "credit_card"
+
+    debts = json.loads(await agent_tools.list_debts(user_id, db_session))
+    assert debts[0]["creditor"] == "Amex"
+    assert debts[0]["subtype"] == "credit_card"
+
+
 async def test_update_debt_payment_amount_subtracts_and_marks_paid(db_session, user_id):
     await agent_tools.create_debt(user_id, db_session, creditor="BBVA", total_amount=1000, monthly_payment=100)
     result = json.loads(
@@ -101,12 +128,12 @@ async def test_update_debt_payment_amount_never_goes_negative(db_session, user_i
 async def test_update_debt_unknown_creditor(db_session, user_id):
     await agent_tools.create_debt(user_id, db_session, creditor="BBVA", total_amount=100, monthly_payment=10)
     result = await agent_tools.update_debt(user_id, db_session, creditor_name="No existe")
-    assert "No encontré una deuda" in result
+    assert "No encontré un crédito" in result
 
 
 async def test_update_debt_no_debts_at_all(db_session, user_id):
     result = await agent_tools.update_debt(user_id, db_session, creditor_name="Cualquiera")
-    assert "no tiene deudas registradas" in result
+    assert "no tiene créditos registrados" in result
 
 
 async def test_create_budget_duplicate_category_returns_friendly_message(db_session, user_id):

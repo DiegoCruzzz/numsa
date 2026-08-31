@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -15,9 +16,10 @@ import type { AccountOut } from "@/types/api";
 
 const schema = z.object({
   name: z.string().min(1, "Nombre requerido"),
-  type: z.enum(["cash", "debit", "credit", "savings"]),
+  type: z.enum(["cash", "debit", "savings"]),
   balance: z.coerce.number(),
   currency: z.string().default("MXN"),
+  interest_rate: z.coerce.number().min(0).max(999.99, "Máximo 999.99%").optional(),
 });
 
 type FormInput = z.input<typeof schema>;
@@ -33,6 +35,7 @@ export function AccountForm({ open, onClose, editing }: Props) {
   const createMutation = useCreateAccount();
   const updateMutation = useUpdateAccount();
   const { toast } = useToast();
+  const [selectedType, setSelectedType] = useState<FormValues["type"]>(editing?.type ?? "debit");
 
   const {
     register,
@@ -43,9 +46,32 @@ export function AccountForm({ open, onClose, editing }: Props) {
   } = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(schema),
     defaultValues: editing
-      ? { name: editing.name, type: editing.type, balance: editing.balance, currency: editing.currency }
+      ? {
+          name: editing.name,
+          type: editing.type,
+          balance: editing.balance,
+          currency: editing.currency,
+          interest_rate: editing.interest_rate ?? undefined,
+        }
       : { type: "debit", balance: 0, currency: "MXN" },
   });
+
+  useEffect(() => {
+    if (!open) return;
+    reset(
+      editing
+        ? {
+            name: editing.name,
+            type: editing.type,
+            balance: editing.balance,
+            currency: editing.currency,
+            interest_rate: editing.interest_rate ?? undefined,
+          }
+        : { type: "debit", balance: 0, currency: "MXN" }
+    );
+    setSelectedType(editing?.type ?? "debit");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editing]);
 
   async function onSubmit(values: FormValues) {
     try {
@@ -79,14 +105,16 @@ export function AccountForm({ open, onClose, editing }: Props) {
             <div className="space-y-2">
               <Label>Tipo</Label>
               <Select
-                defaultValue={editing?.type ?? "debit"}
-                onValueChange={(v) => setValue("type", v as FormValues["type"])}
+                value={selectedType}
+                onValueChange={(v) => {
+                  setValue("type", v as FormValues["type"]);
+                  setSelectedType(v as FormValues["type"]);
+                }}
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cash">Efectivo</SelectItem>
                   <SelectItem value="debit">Débito</SelectItem>
-                  <SelectItem value="credit">Crédito</SelectItem>
                   <SelectItem value="savings">Ahorro</SelectItem>
                 </SelectContent>
               </Select>
@@ -96,6 +124,13 @@ export function AccountForm({ open, onClose, editing }: Props) {
               <Input type="number" step="0.01" {...register("balance")} />
             </div>
           </div>
+          {selectedType === "savings" && (
+            <div className="space-y-2">
+              <Label>Tasa de interés anual (%)</Label>
+              <Input type="number" step="0.01" placeholder="Ej: 12" {...register("interest_rate")} />
+              {errors.interest_rate && <p className="text-xs text-destructive">{errors.interest_rate.message}</p>}
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Moneda</Label>
             <Select
